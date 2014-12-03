@@ -1,0 +1,54 @@
+input int NUMBER;
+
+interface Filter with
+  event int go_filter;
+end
+
+class PrimeFilter with
+  interface Filter;
+  var Filter& next;
+do
+  var int prime = await this.go_filter;
+  _printf("%d is prime\n", prime);
+  loop do
+    var int to_filter = await this.go_filter;
+    if to_filter % prime != 0 then
+      emit this.next.go_filter => to_filter;
+    end
+  end
+end
+
+class PrintFilter with
+  interface Filter;
+do
+  loop do
+    var int to_print = await this.go_filter;
+    _printf("%d might be prime\n", to_print);
+  end
+end
+
+var PrintFilter printer with
+  // nothing
+end;
+
+var PrimeFilter[1000] filters;
+
+var int i = 0;
+loop do
+  if i == 0 then
+    filters[i].next = printer;
+  else
+    filters[i].next = filters[i-1];
+  end
+  if i < 1000 then
+    i = i + 1;
+  else
+    break;
+  end
+end
+
+loop do
+  var int x = await NUMBER;
+  emit filters[999].go_filter => x;
+end
+
